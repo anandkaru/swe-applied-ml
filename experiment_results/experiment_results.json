@@ -1,0 +1,126 @@
+{
+  "results": [
+    {
+      "k": 3,
+      "silhouette_score": 0.17165392637252808,
+      "cluster_balance": 0.7203694937958307,
+      "token_usage": 695,
+      "theme_diversity": 0.6,
+      "execution_time": 2.1998510360717773,
+      "cluster_sizes": [
+        4298,
+        2073,
+        3629
+      ]
+    },
+    {
+      "k": 5,
+      "silhouette_score": 0.2551628351211548,
+      "cluster_balance": 0.9043710294941957,
+      "token_usage": 1158,
+      "theme_diversity": 0.52,
+      "execution_time": 2.648597002029419,
+      "cluster_sizes": [
+        2190,
+        1772,
+        2258,
+        1935,
+        1845
+      ]
+    },
+    {
+      "k": 7,
+      "silhouette_score": 0.2071043998003006,
+      "cluster_balance": 0.5337677402838796,
+      "token_usage": 1622,
+      "theme_diversity": 0.5333333333333333,
+      "execution_time": 3.2625362873077393,
+      "cluster_sizes": [
+        1927,
+        1938,
+        1845,
+        745,
+        2187,
+        320,
+        1038
+      ]
+    },
+    {
+      "k": 9,
+      "silhouette_score": 0.1425735205411911,
+      "cluster_balance": 0.5090514079865387,
+      "token_usage": 2086,
+      "theme_diversity": 0.5333333333333333,
+      "execution_time": 3.659770965576172,
+      "cluster_sizes": [
+        745,
+        472,
+        1927,
+        1913,
+        854,
+        1375,
+        1356,
+        1038,
+        320
+      ]
+    },
+    {
+      "k": 11,
+      "silhouette_score": 0.1776755154132843,
+      "cluster_balance": 0.3211220728289953,
+      "token_usage": 2552,
+      "theme_diversity": 0.5127272727272727,
+      "execution_time": 3.762854814529419,
+      "cluster_sizes": [
+        320,
+        1927,
+        1308,
+        1780,
+        404,
+        162,
+        426,
+        1703,
+        751,
+        548,
+        671
+      ]
+    }
+  ],
+  "summary": {
+    "best_silhouette_k": 5,
+    "best_balance_k": 5,
+    "best_diversity_k": 3,
+    "lowest_cost_k": 3,
+    "recommended_k": 3
+  },
+  "metrics": {
+    "silhouette_scores": [
+      0.17165392637252808,
+      0.2551628351211548,
+      0.2071043998003006,
+      0.1425735205411911,
+      0.1776755154132843
+    ],
+    "cluster_balances": [
+      0.7203694937958307,
+      0.9043710294941957,
+      0.5337677402838796,
+      0.5090514079865387,
+      0.3211220728289953
+    ],
+    "token_usage": [
+      695,
+      1158,
+      1622,
+      2086,
+      2552
+    ],
+    "theme_diversity": [
+      0.6,
+      0.52,
+      0.5333333333333333,
+      0.5333333333333333,
+      0.5127272727272727
+    ]
+  }
+}
