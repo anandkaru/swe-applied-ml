@@ -5,7 +5,7 @@ Quote selection for the PrimeApple Review Insight Pipeline.
 import pandas as pd
 import numpy as np
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import re
 
 logger = logging.getLogger(__name__)
@@ -17,8 +17,9 @@ class QuoteSelector:
     def __init__(self):
         self.logger = logger
     
-    def select_quotes(self, df: pd.DataFrame, clusters: np.ndarray, 
-                     sentiment_results: Dict) -> Dict[int, List[Dict]]:
+    def select_quotes(self, df: pd.DataFrame, clusters: np.ndarray,
+                      sentiment_results: Dict,
+                      embeddings: Optional[np.ndarray] = None) -> Dict[int, List[Dict]]:
         """
         Select representative quotes for each theme.
         
@@ -44,10 +45,17 @@ class QuoteSelector:
             # Get sentiment indices that correspond to the cluster reviews
             cluster_indices = np.where(cluster_mask)[0]
             cluster_sentiments = [sentiment_results['sentiments'][i] for i in cluster_indices]
+            # Subset embeddings for this cluster if available
+            cluster_embeddings = None
+            if embeddings is not None:
+                try:
+                    cluster_embeddings = embeddings[cluster_mask]
+                except Exception:
+                    cluster_embeddings = None
             
             # Select quotes
             quotes = self._select_cluster_quotes(
-                cluster_reviews, cluster_sentiments, cluster_id
+                cluster_reviews, cluster_sentiments, cluster_id, cluster_embeddings
             )
             
             theme_quotes[cluster_id] = quotes
@@ -56,9 +64,10 @@ class QuoteSelector:
         
         return theme_quotes
     
-    def _select_cluster_quotes(self, cluster_reviews: pd.DataFrame, 
-                             cluster_sentiments: List[str], 
-                             cluster_id: int) -> List[Dict]:
+    def _select_cluster_quotes(self, cluster_reviews: pd.DataFrame,
+                               cluster_sentiments: List[str],
+                               cluster_id: int,
+                               cluster_embeddings: Optional[np.ndarray] = None) -> List[Dict]:
         """
         Select representative quotes for a single cluster.
         
@@ -78,7 +87,10 @@ class QuoteSelector:
         scored_reviews = self._score_reviews(cluster_df)
         
         # Select diverse quotes
-        selected_quotes = self._select_diverse_quotes(scored_reviews)
+        if cluster_embeddings is not None and len(cluster_embeddings) == len(scored_reviews):
+            selected_quotes = self._select_diverse_quotes_mmr(scored_reviews, cluster_embeddings)
+        else:
+            selected_quotes = self._select_diverse_quotes_jaccard(scored_reviews)
         
         return selected_quotes
     
@@ -220,7 +232,7 @@ class QuoteSelector:
         
         return min(score, 1.0)
     
-    def _select_diverse_quotes(self, scored_df: pd.DataFrame) -> List[Dict]:
+    def _select_diverse_quotes_jaccard(self, scored_df: pd.DataFrame) -> List[Dict]:
         """
         Select diverse quotes ensuring sentiment and rating diversity.
         
@@ -312,6 +324,67 @@ class QuoteSelector:
         selected_quotes.sort(key=lambda x: x['score'], reverse=True)
         
         return selected_quotes[:3]
+
+    def _select_diverse_quotes_mmr(self, scored_df: pd.DataFrame,
+                                   cluster_embeddings: np.ndarray,
+                                   max_quotes: int = 3,
+                                   alpha: float = 0.7) -> List[Dict]:
+        """Select quotes using Maximal Marginal Relevance with embeddings.
+
+        Args:
+            scored_df: DataFrame with per-review scores
+            cluster_embeddings: Embeddings aligned to scored_df rows
+            max_quotes: Number of quotes to return
+            alpha: Trade-off between quality and diversity (0..1)
+
+        Returns:
+            List of selected quote dicts
+        """
+        if len(scored_df) == 0:
+            return []
+
+        # Normalize embeddings to unit vectors for cosine similarity
+        emb = cluster_embeddings.astype(float)
+        norms = np.linalg.norm(emb, axis=1, keepdims=True)
+        norms[norms == 0] = 1.0
+        emb = emb / norms
+        sim = emb @ emb.T  # cosine similarity matrix
+
+        # Normalize quality scores to [0,1]
+        q = scored_df['total_score'].to_numpy(dtype=float)
+        q_min, q_max = float(np.min(q)), float(np.max(q))
+        denom = (q_max - q_min) if (q_max - q_min) > 1e-9 else 1.0
+        quality = (q - q_min) / denom
+
+        candidates = list(range(len(scored_df)))
+        selected_idx: List[int] = []
+
+        while candidates and len(selected_idx) < max_quotes:
+            mmr_scores: List[float] = []
+            for i in candidates:
+                diversity = 0.0 if not selected_idx else float(np.max(sim[i, selected_idx]))
+                mmr = alpha * quality[i] - (1.0 - alpha) * diversity
+                mmr_scores.append(mmr)
+            best_local = candidates[int(np.argmax(mmr_scores))]
+            selected_idx.append(best_local)
+            candidates.remove(best_local)
+
+        # Build quote dicts in selected order
+        selected_quotes: List[Dict] = []
+        for i in selected_idx:
+            row = scored_df.iloc[i]
+            quote = {
+                'text': row['text_clean'],
+                'rating': int(row['rating']),
+                'sentiment': row['sentiment'],
+                'score': float(row['total_score']),
+                'created_at': row['created_at'].isoformat() if pd.notna(row.get('created_at', None)) else None
+            }
+            selected_quotes.append(quote)
+
+        # Keep highest score first
+        selected_quotes.sort(key=lambda x: x['score'], reverse=True)
+        return selected_quotes[:max_quotes]
     
     def _calculate_text_similarity(self, text1: str, text2: str) -> float:
         """

@@ -103,7 +103,7 @@ def run(model, temperature, max_clusters, min_clusters, force_recompute, debug):
         logger.info("Step 6: Selecting representative quotes")
         quote_selector = QuoteSelector()
         theme_quotes = quote_selector.select_quotes(
-            reviews_df, clusters, sentiment_results
+            reviews_df, clusters, sentiment_results, embeddings
         )
         logger.info("Representative quotes selected")
         
