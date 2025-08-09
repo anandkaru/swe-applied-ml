@@ -110,11 +110,49 @@ def run(model, temperature, max_clusters, min_clusters, force_recompute, debug):
         # Step 7: Store results
         logger.info("Step 7: Storing results")
         storage_manager = StorageManager()
-        run_id = storage_manager.store_results(
+        
+        # Generate run ID for caching
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        run_id = f"run_{timestamp}"
+        
+        # Save cache data for incremental updates
+        logger.info("Caching data for future incremental updates")
+        cache_dir = config.cache_dir
+        import joblib
+        
+        try:
+            joblib.dump(embeddings, os.path.join(cache_dir, f"embeddings_{run_id}.joblib"))
+            joblib.dump(clusters, os.path.join(cache_dir, f"clusters_{run_id}.joblib"))
+            joblib.dump(theme_discovery.scaler, os.path.join(cache_dir, f"scaler_{run_id}.joblib"))
+            joblib.dump(theme_discovery.cluster_model, os.path.join(cache_dir, f"cluster_model_{run_id}.joblib"))
+            joblib.dump(reviews_df, os.path.join(cache_dir, f"reviews_{run_id}.joblib"))
+            joblib.dump(sentiment_results, os.path.join(cache_dir, f"sentiment_{run_id}.joblib"))
+            logger.info(f"Cache data saved for run {run_id}")
+        except Exception as e:
+            logger.warning(f"Failed to save cache data: {e}")
+        
+        # Store results in database
+        stored_run_id = storage_manager.store_results(
             reviews_df, clusters, theme_summaries, theme_quotes, 
             sentiment_results, config
         )
-        logger.info(f"Results stored with run_id: {run_id}")
+        logger.info(f"Results stored with run_id: {stored_run_id}")
+        
+        # Use the stored run_id for consistency
+        if stored_run_id != run_id:
+            logger.info(f"Database assigned different run_id: {stored_run_id}, updating cache filenames")
+            # Update cache filenames to match database run_id
+            import shutil
+            try:
+                for cache_type in ["embeddings", "clusters", "scaler", "cluster_model", "reviews", "sentiment"]:
+                    old_path = os.path.join(cache_dir, f"{cache_type}_{run_id}.joblib")
+                    new_path = os.path.join(cache_dir, f"{cache_type}_{stored_run_id}.joblib")
+                    if os.path.exists(old_path):
+                        shutil.move(old_path, new_path)
+            except Exception as e:
+                logger.warning(f"Failed to rename cache files: {e}")
+        
+        run_id = stored_run_id
         
         logger.info("Pipeline completed successfully!")
         

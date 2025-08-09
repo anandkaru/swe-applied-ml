@@ -42,15 +42,25 @@ def test_embedding_generation(df):
     """Test embedding generation."""
     print("🧪 Testing embedding generation...")
     
-    # Use GPT-4 config
-    config = Config(llm_model="gpt-4")
-    embedding_gen = EmbeddingGenerator(config)
-    embeddings = embedding_gen.generate_embeddings(df.head(50))  # Test with subset
+    # Use unique cache path for testing to avoid conflicts
+    config = Config(llm_model="gpt-4", force_recompute=True)
+    config.cache_dir = "test_cache"
+    os.makedirs(config.cache_dir, exist_ok=True)
     
-    assert embeddings.shape[0] == 50, "Should have embeddings for all reviews"
+    embedding_gen = EmbeddingGenerator(config)
+    test_df = df.head(50)  # Test with subset
+    embeddings = embedding_gen.generate_embeddings(test_df)
+    
+    assert embeddings.shape[0] == len(test_df), f"Should have embeddings for all reviews, got {embeddings.shape[0]} for {len(test_df)} reviews"
     assert embeddings.shape[1] > 0, "Should have embedding dimensions"
     
     print(f"✅ Embedding generation test passed: {embeddings.shape}")
+    
+    # Clean up test cache
+    import shutil
+    if os.path.exists(config.cache_dir):
+        shutil.rmtree(config.cache_dir)
+    
     return embeddings
 
 

@@ -5,7 +5,7 @@ LLM-based theme summarization for the PrimeApple Review Insight Pipeline.
 import pandas as pd
 import numpy as np
 import logging
-import openai
+from openai import OpenAI
 from typing import Dict, List, Tuple
 import time
 import json
@@ -18,8 +18,13 @@ class LLMSummarizer:
     def __init__(self, config):
         self.config = config
         self.logger = logger
-        # Set OpenAI API key globally for compatibility
-        openai.api_key = config.openai_api_key
+        # Initialize OpenAI client with new API
+        try:
+            self.client = OpenAI(api_key=config.openai_api_key)
+            self.logger.info("OpenAI client initialized successfully")
+        except Exception as e:
+            self.logger.warning(f"Failed to initialize OpenAI client: {e}")
+            self.client = None
     
     def generate_summaries(self, df: pd.DataFrame, clusters: np.ndarray, 
                           sentiment_results: Dict) -> List[Dict]:
@@ -86,8 +91,12 @@ class LLMSummarizer:
         )
         
         try:
-            # Generate summary using OpenAI ChatCompletion
-            response = openai.ChatCompletion.create(
+            # Check if client is available
+            if self.client is None:
+                raise Exception("OpenAI client not initialized")
+                
+            # Generate summary using OpenAI Chat API (new format)
+            response = self.client.chat.completions.create(
                 model=self.config.llm_model,
                 messages=[
                     {"role": "system", "content": self._get_system_prompt()},
@@ -98,7 +107,7 @@ class LLMSummarizer:
                 top_p=self.config.top_p
             )
             
-            summary_text = response.choices[0].message['content'].strip()
+            summary_text = response.choices[0].message.content.strip()
             
             # Parse the response
             parsed_summary = self._parse_summary_response(summary_text)

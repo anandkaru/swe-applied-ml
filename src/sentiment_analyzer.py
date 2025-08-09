@@ -49,23 +49,28 @@ class SentimentAnalyzer:
         # Analyze sentiment for each review
         sentiments = []
         confidence_scores = []
+        sentiment_results = []  # Store full results for calibration
         
         for idx, row in df.iterrows():
             sentiment_result = self._analyze_single_review(row['text_clean'])
             sentiments.append(sentiment_result['label'])
             confidence_scores.append(sentiment_result['score'])
+            sentiment_results.append(sentiment_result)  # Store for calibration
             
             if (idx + 1) % 100 == 0:
                 self.logger.info(f"Processed {idx + 1} reviews")
         
+        # Apply rating-aware calibration
+        calibrated_sentiments = self._calibrate_sentiments_by_rating(df, sentiments, sentiment_results)
+        
         # Create results dictionary
         results = {
-            'sentiments': sentiments,
+            'sentiments': calibrated_sentiments,
             'confidence_scores': confidence_scores,
-            'sentiment_distribution': self._get_sentiment_distribution(sentiments),
+            'sentiment_distribution': self._get_sentiment_distribution(calibrated_sentiments),
             'avg_confidence': np.mean(confidence_scores),
-            'sentiment_by_rating': self._get_sentiment_by_rating(df, sentiments),
-            'sentiment_by_product': self._get_sentiment_by_product(df, sentiments)
+            'sentiment_by_rating': self._get_sentiment_by_rating(df, calibrated_sentiments),
+            'sentiment_by_product': self._get_sentiment_by_product(df, calibrated_sentiments)
         }
         
         self.logger.info("Sentiment analysis completed")
@@ -187,6 +192,43 @@ class SentimentAnalyzer:
                 sentiment_by_product[product] = distribution
         
         return sentiment_by_product
+    
+    def _calibrate_sentiments_by_rating(self, df: pd.DataFrame, 
+                                       sentiments: List[str], 
+                                       scores: List[Dict]) -> List[str]:
+        """
+        Calibrate sentiment predictions using review ratings.
+        
+        Args:
+            df: Review DataFrame with ratings
+            sentiments: Original sentiment predictions
+            scores: Confidence scores for predictions
+            
+        Returns:
+            Calibrated sentiment predictions
+        """
+        calibrated_sentiments = sentiments.copy()
+        
+        for i, (sentiment, score, rating) in enumerate(zip(sentiments, scores, df['rating'])):
+            confidence = score.get('score', 0.5)
+            
+            # Apply rating-based calibration rules
+            if confidence < 0.7:  # Low confidence predictions
+                if rating >= 4 and sentiment == 'negative':
+                    # High rating but predicted negative - likely positive
+                    calibrated_sentiments[i] = 'positive'
+                elif rating <= 2 and sentiment == 'positive':
+                    # Low rating but predicted positive - likely negative
+                    calibrated_sentiments[i] = 'negative'
+                elif rating == 3:
+                    # Middle rating - prefer neutral
+                    calibrated_sentiments[i] = 'neutral'
+        
+        # Log calibration statistics
+        changes = sum(1 for orig, cal in zip(sentiments, calibrated_sentiments) if orig != cal)
+        self.logger.info(f"Calibrated {changes} sentiment predictions based on ratings")
+        
+        return calibrated_sentiments
     
     def get_sentiment_summary(self, results: Dict) -> str:
         """

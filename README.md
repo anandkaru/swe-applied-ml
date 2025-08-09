@@ -31,7 +31,7 @@ This pipeline processes customer reviews to identify key themes, sentiment patte
 - **K Selection**: Automated using silhouette score and elbow method
 
 #### LLM Prompting Strategy
-- **Model**: GPT-4 for high-quality summaries
+- **Model**: GPT-4 for high-quality summaries (compatible with OpenAI API v1.0+)
 - **Temperature**: 0.3 for consistent, focused outputs
 - **Prompt Design**: 
   - Clear context about the business goal
@@ -39,6 +39,7 @@ This pipeline processes customer reviews to identify key themes, sentiment patte
   - Examples of good vs bad summaries
   - Emphasis on actionable insights
 - **Fallback System**: Intelligent content-based theme extraction when LLM fails
+- **API Compatibility**: Updated for OpenAI v1.0+ API format
 
 #### Quote Selection Strategy
 - **Criteria**: 
@@ -48,6 +49,20 @@ This pipeline processes customer reviews to identify key themes, sentiment patte
   4. Clarity (well-written, understandable)
   5. Uniqueness (avoid repetitive quotes)
 - **Algorithm**: Multi-criteria scoring with diversity enforcement
+
+#### Sentiment Analysis Improvements
+- **Model**: `cardiffnlp/twitter-roberta-base-sentiment-latest`
+- **Rating-Aware Calibration**: Adjusts predictions based on review ratings for improved accuracy
+- **Confidence Thresholding**: Low-confidence predictions calibrated using rating context
+- **Calibration Rules**:
+  - High ratings (4-5) + negative prediction (low confidence) → positive
+  - Low ratings (1-2) + positive prediction (low confidence) → negative  
+  - Middle rating (3) + any prediction (low confidence) → neutral
+
+#### Cache Management
+- **Incremental Updates**: Pipeline caches embeddings, clusters, and models for future incremental updates
+- **Cache Storage**: Joblib-based caching in `cache/` directory
+- **Run Versioning**: Each pipeline run cached with unique run_id for reproducibility
 
 ## 📊 Output Schema
 
@@ -89,6 +104,23 @@ This pipeline processes customer reviews to identify key themes, sentiment patte
 ```bash
 pip install -r requirements.txt
 ```
+
+### ✅ Recent Fixes & Improvements
+
+#### OpenAI API Compatibility (Fixed)
+- **Issue**: Pipeline failed with OpenAI API v1.0+ incompatibility
+- **Fix**: Updated LLM summarizer to use new OpenAI client format
+- **Impact**: LLM theme summaries now work with current OpenAI library versions
+
+#### Sentiment Analysis Calibration (Improved)  
+- **Issue**: Sentiment predictions inconsistent with review ratings (50.6% negative vs 33.8% expected)
+- **Fix**: Added rating-aware calibration that adjusts low-confidence predictions
+- **Impact**: More accurate sentiment analysis aligned with actual review ratings
+
+#### Cache Management (Added)
+- **Issue**: No support for incremental updates or pipeline iteration
+- **Fix**: Added comprehensive caching system for embeddings, models, and results  
+- **Impact**: Enables future incremental updates and faster pipeline iterations
 
 ### Environment Setup
 
