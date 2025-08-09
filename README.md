@@ -2,6 +2,28 @@
 
 An end-to-end, reproducible insight pipeline that transforms raw customer reviews into actionable, executive-ready summaries for PrimeApple's EchoPad and EchoPad Pro products.
 
+## 📚 Table of Contents
+
+- [Overview](#-overview)
+- [Architecture](#️-architecture)
+- [Output Schema](#-output-schema)
+- [Usage](#-usage)
+- [Configuration](#-configuration)
+- [Best Practices](#-best-practices)
+- [Troubleshooting](#-troubleshooting)
+
+## 📋 Related Documentation
+
+| Document | Description |
+|----------|-------------|
+| [🚀 Quick Start Guide](QUICK_START.md) | Fast setup and basic usage instructions |
+| [📊 Pipeline Summary](PIPELINE_SUMMARY.md) | Technical overview and component details |
+| [✅ Deliverables Checklist](DELIVERABLES_CHECKLIST.md) | Complete list of project deliverables |
+| [📈 Delivery Summary](DELIVERY_SUMMARY.md) | Final delivery confirmation and status |
+| [🧪 Experiment Presentation](EXPERIMENT_PRESENTATION.md) | 4-slide experiment results presentation |
+| [🔬 Experiment Summary](EXPERIMENT_SUMMARY.md) | Detailed clustering granularity experiment analysis |
+
+
 ## 🎯 Overview
 
 This pipeline processes customer reviews to identify key themes, sentiment patterns, and representative quotes that help leadership understand what customers love or dislike about their products.
@@ -19,6 +41,13 @@ This pipeline processes customer reviews to identify key themes, sentiment patte
 7. **Storage & Persistence**: Saves all artifacts to SQLite database
 
 ### Key Design Decisions
+
+- [Semantic Representation](#semantic-representation)
+- [Theme Discovery](#theme-discovery)
+- [LLM Prompting Strategy](#llm-prompting-strategy)
+- [Quote Selection Strategy](#quote-selection-strategy)
+- [Sentiment Analysis Improvements](#sentiment-analysis-improvements)
+- [Cache Management](#cache-management)
 
 #### Semantic Representation
 - **Model**: `all-MiniLM-L6-v2` from Sentence Transformers
@@ -98,6 +127,13 @@ This pipeline processes customer reviews to identify key themes, sentiment patte
 - `notes`: Additional notes
 
 ## 🚀 Usage
+
+### Quick Navigation
+- [Installation](#installation)
+- [Environment Setup](#environment-setup)
+- [Running the Pipeline](#running-the-pipeline)
+- [CLI Options](#cli-options)
+- [Example Output](#example-output)
 
 ### Installation
 
@@ -210,4 +246,8 @@ This enables verbose logging and intermediate result saving.
 
 ## 📝 License
 
-MIT License - see LICENSE file for details. 
+MIT License - see LICENSE file for details.
+
+---
+
+**[⬆ Back to Top](#primeapple-review-insight-pipeline)** 
